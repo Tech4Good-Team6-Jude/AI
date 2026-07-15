@@ -1,5 +1,5 @@
 from typing import Protocol
-
+from app.schemas.text import SimplifyRequest, SimplifyResponse, SimilarRequest, SimilarResponse
 from app.schemas.diagnosis import DiagnosisAnalyzeRequest, DiagnosisAnalyzeResponse
 from app.schemas.ocr import OcrResponse
 from app.schemas.reading import ReadingEvaluationResponse
@@ -49,3 +49,4 @@ class InferenceProvider(Protocol):
         self,
         request: TrainingGenerateRequest,
     ) -> TrainingGenerateResponse: ...
+    async def generate_similar_sentences(self, request: SimilarRequest) -> SimilarResponse: ...
