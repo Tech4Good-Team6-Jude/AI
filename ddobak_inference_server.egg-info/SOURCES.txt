@@ -17,10 +17,16 @@ app/core/__init__.py
 app/core/config.py
 app/core/errors.py
 app/pipelines/__init__.py
+app/pipelines/reading_pipeline.py
 app/providers/__init__.py
 app/providers/base.py
 app/providers/factory.py
 app/providers/mock.py
+app/providers/real.py
+app/providers/clients/llm_client.py
+app/providers/clients/ocr_client.py
+app/providers/clients/stt_client.py
+app/providers/clients/tts_client.py
 app/schemas/__init__.py
 app/schemas/common.py
 app/schemas/diagnosis.py

@@ -18,7 +18,8 @@ class RealInferenceProvider:
         language: str,
         include_bounding_boxes: bool,
     ) -> OcrResponse:
-        result = await self.ocr_client.extract(
+        # 가공하지 않고 클라이언트 결과를 그대로 전달합니다!
+        return await self.ocr_client.extract(
             content=content,
             filename=filename,
             language=language,
