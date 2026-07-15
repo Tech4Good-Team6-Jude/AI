@@ -45,8 +45,9 @@ class LlmClient:
         for phoneme in target_phonemes:
             data = self.training_db.get(phoneme, {
                 "sentences": self.default_sentences,
-                "quizzes": [{"text": "올바르게 읽은 단어를 고르세요.", "choices": ["나무", "나부"]}]
+                "quizzes": [{"text": "올바르게 읽은 단어를 고르세요.", "choices": ["나무", "나부", "다무"]}]
             })
+
             for sentence in random.sample(data["sentences"], min(2, len(data["sentences"]))):
                 generated_items.append({
                     "item_id": f"train-{phoneme}-{item_counter}",
