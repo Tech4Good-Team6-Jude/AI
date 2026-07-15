@@ -1,88 +1,53 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from time import perf_counter
 
-# (선택) 실제 API 라우터들이 만들어지면 주석을 해제하고 연결합니다.
-# from app.api.v1 import stt, assistant
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-# ==========================================
-# 1. Lifespan 설정 (서버 시작/종료 시 실행될 로직)
-# ==========================================
+from app.api.router import api_router
+from app.core.config import settings
+from app.core.errors import AppError
+from app.providers.factory import create_inference_provider
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # [StartUp] 서버가 켜질 때 실행할 코드
-    # 여기에 대용량 AI 모델(Whisper 등)을 메모리/GPU에 로드하는 로직을 넣습니다.
-    print("==========================================")
-    print("🚀 [또박또박 AI] AI 추론 서버를 시작합니다.")
-    print("📦 로컬 AI 모델(Whisper)을 GPU 메모리에 로딩하는 중...")
-    print("==========================================")
-    
-    # 예시로 app.state에 모델을 담아두면, 다른 API 파일(라우터)에서도 이 모델을 공유해서 쓸 수 있습니다.
-    # app.state.whisper_model = WhisperModel("base", device="cuda")
-    
-    yield  # ◀ 이 시점에 서버가 클라이언트 요청을 받기 시작합니다.
-
-    # [ShutDown] 서버가 꺼질 때 실행할 코드
-    # GPU 메모리를 안전하게 비우거나 세션을 닫는 작업을 수행합니다.
-    print("==========================================")
-    print("🛑 [또박또박 AI] AI 추론 서버를 안전하게 종료합니다.")
-    print("==========================================")
+    # 실제 모델이나 외부 SDK 클라이언트는 여기서 한 번만 초기화한다.
+    app.state.inference_provider = create_inference_provider()
+    yield
+    # GPU 메모리, 세션, 네트워크 클라이언트 정리도 여기서 수행한다.
 
 
-# ==========================================
-# 2. FastAPI 앱 초기화 (Lifespan 주입)
-# ==========================================
 app = FastAPI(
-    title="또박또박 AI 추론 API 서버",
-    description="난독증 해결 학습 도우미 '또박또박'의 AI(STT, LLM) 처리를 담당하는 전용 서버입니다.",
-    version="1.0.0",
-    lifespan=lifespan
+    title="또박또박 Inference Server",
+    version="0.1.0",
+    docs_url="/docs" if settings.enable_docs else None,
+    openapi_url="/openapi.json" if settings.enable_docs else None,
+    lifespan=lifespan,
 )
 
 
-# ==========================================
-# 3. CORS(보안 설정) 미들웨어 추가
-# ==========================================
-# 개발 단계에서는 모든 외부 접속(*)을 허용하여 백엔드/프론트엔드와 편하게 연결합니다.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.middleware("http")
+async def add_request_metadata(request: Request, call_next):
+    started = perf_counter()
+    response = await call_next(request)
+    response.headers["X-Process-Time-Ms"] = f"{(perf_counter() - started) * 1000:.1f}"
+    request_id = request.headers.get("X-Request-Id")
+    if request_id:
+        response.headers["X-Request-Id"] = request_id
+    return response
 
 
-# ==========================================
-# 4. API 라우터 등록
-# ==========================================
-# 추후 작성할 API 기능들을 메인 앱에 붙여주는 단계입니다.
-# (지금은 파일이 없으므로 주석 처리해 두고, 나중에 파일 생성 후 주석을 해제합니다.)
-# app.include_router(stt.router, prefix="/api/v1/stt", tags=["Speech-To-Text"])
-# app.include_router(assistant.router, prefix="/api/v1/assistant", tags=["Dyslexia Assistant"])
+@app.exception_handler(AppError)
+async def handle_app_error(_: Request, exc: AppError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": exc.code,
+            "message": exc.message,
+            "retryable": exc.retryable,
+        },
+    )
 
 
-# ==========================================
-# 5. 헬스 체크용 기본 엔드포인트 (통신 테스트용)
-# ==========================================
-@app.get("/", tags=["Health Check"])
-def read_root():
-    """
-    AI 서버가 정상적으로 켜져 있는지 확인하는 테스트용 API입니다.
-    """
-    return {
-        "status": "online",
-        "service": "또박또박 AI Inference Server",
-        "message": "서버가 정상적으로 작동 중이며, 통신 가능한 상태입니다."
-    }
-
-# 이 임시 엔드포인트는 백엔드 개발자와의 통신 규격을 맞추기 위해 임시로 열어둡니다.
-@app.post("/api/v1/test-stt", tags=["Health Check"])
-def test_stt():
-    """
-    백엔드 서버와 POST 통신이 잘 연결되는지 확인하는 임시 API입니다.
-    """
-    return {
-        "status": "success",
-        "recognized_text": "가나다라 마바사 (테스트용 AI 결과)"
-    }
+app.include_router(api_router, prefix=settings.api_prefix)
