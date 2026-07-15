@@ -1,16 +1,18 @@
 from app.providers.clients.ocr_client import OcrClient
-from app.providers.clients.stt_client import SttClient
 from app.providers.clients.tts_client import TtsClient
-
+from app.providers.clients.stt_client import SttClient
+from app.providers.clients.llm_client import LlmClient
+from app.schemas.text import SimplifyRequest, SimplifyResponse, SimilarRequest, SimilarResponse # ◀ 추가
 from app.schemas.ocr import BoundingBox, OcrBlock, OcrResponse
 from app.schemas.speech import TtsRequest, SttResponse, TtsResponse, WordTiming
-
+from app.schemas.training import TrainingGenerateRequest, TrainingGenerateResponse, TrainingItem
 
 class RealInferenceProvider:
     def __init__(self):
         self.ocr_client = OcrClient()
         self.tts_client = TtsClient()
         self.stt_client = SttClient()
+        self.llm_client = LlmClient()
 
     async def ocr(
         self,
@@ -20,7 +22,6 @@ class RealInferenceProvider:
         language: str,
         include_bounding_boxes: bool,
     ) -> OcrResponse:
-        # 가공하지 않고 클라이언트 결과를 그대로 전달합니다!
         return await self.ocr_client.extract(
             content=content,
             filename=filename,
@@ -28,67 +29,42 @@ class RealInferenceProvider:
             include_bounding_boxes=include_bounding_boxes,
         )
 
-        return OcrResponse(
-            text=result.text,
-            blocks=[
-                OcrBlock(
-                    text=block["text"],
-                    confidence=block["confidence"],
-                    bounding_box=BoundingBox(**block["bounding_box"])
-                    if block.get("bounding_box")
-                    else None,
-                )
-                for block in result.blocks
-            ],
-            model_version="real-ocr-v1",
-        )
-
-    async def synthesize(self, request: TtsRequest) -> TtsResponse:
-        result = await self.tts_client.synthesize(
-            text=request.text,
-            voice_id=request.voice_id,
-            speed=request.speed,
-            include_timings=request.include_timings,
-        )
-
-        return TtsResponse(
-            audio_base64=result.audio_base64,
-            duration_ms=result.duration_ms,
-            timings=[
-                WordTiming(
-                    text=item["text"],
-                    start_ms=item["start_ms"],
-                    end_ms=item["end_ms"],
-                )
-                for item in result.timings
-            ],
-            model_version="real-tts-v1",
-        )
-
-    async def transcribe(
+    # 🎯 우리가 방금 추가하려 했던 유사 문장 세트 생성 기능!
+    async def generate_training(
         self,
-        *,
-        audio: bytes,
-        filename: str,
-        language: str,
-        expected_text: str | None,
-    ) -> SttResponse:
-        result = await self.stt_client.transcribe(
-            audio=audio,
-            filename=filename,
-            language=language,
+        request: TrainingGenerateRequest,
+    ) -> TrainingGenerateResponse:
+        
+        items_data = await self.llm_client.generate_training(
+            reading_level=request.reading_level,
+            weak_phonemes=request.weak_phonemes,
+            error_types=request.error_types,
+            duration_minutes=request.duration_minutes,
+            exclude_recent_item_ids=request.exclude_recent_item_ids
         )
 
-        return SttResponse(
-            transcript=result.transcript,
-            confidence=result.confidence,
-            words=[
-                WordTiming(
-                    text=word.text,
-                    start_ms=word.start_ms,
-                    end_ms=word.end_ms,
-                )
-                for word in result.words
-            ],
-            model_version="real-stt-v1",
+        items = [
+            TrainingItem(
+                item_id=item["item_id"],
+                type=item["type"],
+                text=item["text"],
+                choices=item["choices"],
+                target_phonemes=item["target_phonemes"]
+            )
+            for item in items_data
+        ]
+
+        return TrainingGenerateResponse(
+            items=items,
+            model_version="free-rule-based-llm-v1"
+        )
+    async def generate_similar(self, request: SimilarRequest) -> SimilarResponse:
+        sentences = await self.llm_client.generate_similar(
+            text=request.text, 
+            count=request.count
+        )
+        return SimilarResponse(
+            original_text=request.text,
+            similar_sentences=sentences,
+            model_version="free-rule-based-similar-v1"
         )
