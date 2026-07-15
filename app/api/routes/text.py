@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_inference_provider
 from app.providers.base import InferenceProvider
-from app.schemas.text import SimplifyRequest, SimplifyResponse, SimilarRequest, SimilarResponse
+from app.schemas.text import SimilarRequest, SimilarResponse, SimplifyRequest, SimplifyResponse
 from app.services.text_service import TextService
 
 router = APIRouter()
@@ -14,8 +14,10 @@ async def simplify(
     provider: InferenceProvider = Depends(get_inference_provider),
 ):
     return await TextService(provider).simplify(request)
+
+
 @router.post("/similar", response_model=SimilarResponse)
-async def generate_similar(
+async def similar(
     request: SimilarRequest,
     provider: InferenceProvider = Depends(get_inference_provider),
 ):

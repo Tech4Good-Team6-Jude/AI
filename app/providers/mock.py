@@ -6,7 +6,7 @@ from app.schemas.reading import (
     WordEvaluation,
 )
 from app.schemas.speech import SttResponse, TtsRequest, TtsResponse, WordTiming
-from app.schemas.text import DifficultWord, SimplifyRequest, SimplifyResponse
+from app.schemas.text import DifficultWord, SimilarRequest, SimilarResponse, SimplifyRequest, SimplifyResponse
 from app.schemas.training import (
     TrainingGenerateRequest,
     TrainingGenerateResponse,
@@ -143,4 +143,13 @@ class MockInferenceProvider:
                 ),
             ],
             model_version="mock-training-1",
+        )
+
+    async def generate_similar(self, request: SimilarRequest) -> SimilarResponse:
+        return SimilarResponse(
+            original_text=request.text,
+            similar_sentences=[
+                f"{request.text} (유사 문장 예시 {i + 1})" for i in range(request.count)
+            ],
+            model_version="mock-similar-1",
         )

@@ -1,5 +1,6 @@
 from app.providers.base import InferenceProvider
-from app.schemas.text import SimplifyRequest, SimplifyResponse, SimilarRequest, SimilarResponse
+from app.schemas.text import SimilarRequest, SimilarResponse, SimplifyRequest, SimplifyResponse
+
 
 class TextService:
     def __init__(self, provider: InferenceProvider):
