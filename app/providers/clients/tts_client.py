@@ -11,7 +11,6 @@ edge-tts는 별도 계정/API 키 없이 쓸 수 있는 무료 TTS지만, 공식
 
 from __future__ import annotations
 
-import base64
 from dataclasses import dataclass
 
 import edge_tts
@@ -28,7 +27,7 @@ VOICE_ALIASES: dict[str, str] = {
 
 @dataclass
 class TtsResult:
-    audio_base64: str
+    audio_bytes: bytes
     duration_ms: int
     timings: list[dict]
 
@@ -61,7 +60,7 @@ class TtsClient:
         voice = _resolve_voice(voice_id)
         rate = _speed_to_rate(speed)
 
-        communicate = edge_tts.Communicate(text, voice, rate=rate)
+        communicate = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
 
         audio_chunks: list[bytes] = []
         timings: list[dict] = []
@@ -108,7 +107,7 @@ class TtsClient:
         duration_ms = timings[-1]["end_ms"] if timings else 0
 
         return TtsResult(
-            audio_base64=base64.b64encode(audio_bytes).decode("ascii"),
+            audio_bytes=audio_bytes,
             duration_ms=duration_ms,
             timings=timings,
         )

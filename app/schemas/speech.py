@@ -23,7 +23,7 @@ class TtsRequest(BaseModel):
 
 
 class TtsResponse(InferenceMetadata):
-    audio_base64: str
+    audio_url: str
     audio_format: str = "mp3"
     duration_ms: int = Field(ge=0)
     timings: list[WordTiming]

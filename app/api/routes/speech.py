@@ -1,8 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi.responses import FileResponse
 
 from app.api.dependencies import get_inference_provider
+from app.core.audio_storage import resolve_audio_path
 from app.providers.base import InferenceProvider
 from app.schemas.speech import SttResponse, TtsRequest, TtsResponse
 from app.services.speech_service import SpeechService
@@ -32,3 +34,9 @@ async def synthesize(
     provider: InferenceProvider = Depends(get_inference_provider),
 ):
     return await SpeechService(provider).synthesize(request)
+
+
+@router.get("/audio/{filename}")
+async def get_audio(filename: str):
+    file_path = resolve_audio_path(filename)
+    return FileResponse(file_path, media_type="audio/mpeg")
