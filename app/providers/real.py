@@ -1,4 +1,5 @@
 from app.providers.clients.ocr_client import OcrClient
+from app.providers.clients.stt_client import SttClient
 from app.providers.clients.tts_client import TtsClient
 
 from app.schemas.ocr import BoundingBox, OcrBlock, OcrResponse
@@ -9,6 +10,7 @@ class RealInferenceProvider:
     def __init__(self):
         self.ocr_client = OcrClient()
         self.tts_client = TtsClient()
+        self.stt_client = SttClient()
 
     async def ocr(
         self,
@@ -50,7 +52,7 @@ class RealInferenceProvider:
         )
 
         return TtsResponse(
-            audio_url=result.audio_url,
+            audio_base64=result.audio_base64,
             duration_ms=result.duration_ms,
             timings=[
                 WordTiming(
@@ -62,7 +64,7 @@ class RealInferenceProvider:
             ],
             model_version="real-tts-v1",
         )
-    
+
     async def transcribe(
         self,
         *,

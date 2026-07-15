@@ -57,7 +57,7 @@ class MockInferenceProvider:
     async def synthesize(self, request: TtsRequest) -> TtsResponse:
         words = request.text.split()
         return TtsResponse(
-            audio_url="https://example.invalid/mock-audio.mp3",
+            audio_base64="bW9jay1hdWRpby1ieXRlcw==",  # "mock-audio-bytes"
             duration_ms=max(len(words), 1) * 600,
             timings=[
                 WordTiming(text=word, start_ms=i * 600, end_ms=(i + 1) * 600)
