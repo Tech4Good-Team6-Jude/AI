@@ -1,10 +1,9 @@
-from app.core.errors import AppError
 from app.providers.base import InferenceProvider
 from app.schemas.ocr import OcrResponse
 
-
 class OcrService:
     def __init__(self, provider: InferenceProvider):
+        # 팩토리에 의해 결정된 InferenceProvider(여기서는 RealInferenceProvider)를 주입받습니다.
         self.provider = provider
 
     async def extract(
@@ -12,11 +11,10 @@ class OcrService:
         *,
         content: bytes,
         filename: str,
-        language: str,
-        include_bounding_boxes: bool,
+        language: str = "ko",
+        include_bounding_boxes: bool = False,
     ) -> OcrResponse:
-        if not content:
-            raise AppError(code="EMPTY_FILE", message="업로드된 파일이 비어 있어.")
+        # 실제 AI Provider의 ocr 함수를 호출하여 결과를 반환합니다.
         return await self.provider.ocr(
             content=content,
             filename=filename,
