@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: ddobak-inference-server
+Version: 0.1.0
+Summary: 또박또박 난독증 학습 도우미 인퍼런스 서버
+Requires-Python: >=3.11
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pydantic-settings
+Requires-Dist: python-multipart
+Provides-Extra: dev
+Requires-Dist: httpx; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
